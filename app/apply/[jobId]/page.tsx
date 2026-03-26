@@ -1,5 +1,5 @@
 'use client'
-import { useChat } from 'ai/react'
+import { useChat } from '@ai-sdk/react'
 import { useEffect, useRef, useState } from 'react'
  
 export default function Apply({ params }: { params: { jobId: string } }) {
