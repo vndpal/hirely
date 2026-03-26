@@ -1,12 +1,14 @@
 # Hirely
 
-This project uses OpenAI (ChatGPT) for interview generation and streaming responses.
+This project now uses OpenAI (ChatGPT) for interview generation and streaming responses.
 
-## Environment variable
+## Environment variables
 
 Set the following required environment variable:
 
 - `OPEN_AI_API_KEY` — your OpenAI API key.
+
+> `ANTHROPIC_API_KEY` is no longer used anywhere in this project.
 
 ## API behavior
 
