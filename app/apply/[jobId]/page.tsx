@@ -23,7 +23,7 @@ export default function Apply() {
     // Usually 'api' is part of ChatInit if not using a Chat instance.
     // However, the types showed ChatInit having it.
     // @ts-ignore
-    api: `/api/chat?jobId=${jobId}`,
+    api: `/api/chat/${jobId}`,
     headers: {
       "x-job-id": jobId || "",
     },

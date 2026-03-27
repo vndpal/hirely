@@ -1,23 +1,23 @@
-// app/api/chat/route.ts
+// app/api/chat/[jobId]/route.ts
 import { createOpenAI } from '@ai-sdk/openai'
 import { streamText, convertToModelMessages } from 'ai'
 import { getJob } from '@/lib/notion'
 import { interviewPrompt } from '@/lib/prompts'
 
-export async function POST(req: Request) {
+export async function POST(req: Request, { params }: { params: { jobId: string } }) {
+  const { jobId } = params
   const body = await req.json().catch(() => ({}))
-  const { searchParams } = new URL(req.url)
-  const headerId = req.headers.get('x-job-id')
-  const queryId = searchParams.get('jobId')
-  const bodyId = body.jobId
-  
-  const jobId = bodyId || headerId || queryId
   const messages = body.messages || []
 
-  console.log("Chat API Request:", { jobId, headerId, queryId, bodyId, hasMessages: !!messages.length })
+  console.log("Chat API Request (Dynamic Path):", { jobId, hasMessages: !!messages.length })
 
-  if (!jobId || jobId === 'undefined') return Response.json({ error: 'Missing jobId' }, { status: 400 })
-  if (!messages.length) return Response.json({ error: 'Missing messages' }, { status: 400 })
+  if (!jobId || jobId === 'undefined') {
+    return Response.json({ error: 'Missing jobId' }, { status: 400 })
+  }
+  
+  if (!messages.length) {
+    return Response.json({ error: 'Missing messages' }, { status: 400 })
+  }
 
   const openAiApiKey = process.env.OPEN_AI_API_KEY
   if (!openAiApiKey) {
