@@ -18,7 +18,10 @@ export default function Apply({ params }: { params: { jobId: string } }) {
     // Usually 'api' is part of ChatInit if not using a Chat instance.
     // However, the types showed ChatInit having it.
     // @ts-ignore
-    api: "/api/chat",
+    api: "/api/chat?jobId=" + params.jobId,
+    headers: {
+      "x-job-id": params.jobId,
+    },
     body: { jobId: params.jobId },
     onFinish: async ({ message, messages: fullMessages }) => {
       const text = getMessageText(message);

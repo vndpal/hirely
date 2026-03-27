@@ -5,8 +5,13 @@ import { getJob } from '@/lib/notion'
 import { interviewPrompt } from '@/lib/prompts'
 
 export async function POST(req: Request) {
-  const { messages, jobId } = await req.json()
+  const body = await req.json().catch(() => ({}))
+  const { searchParams } = new URL(req.url)
+  const jobId = body.jobId || req.headers.get('x-job-id') || searchParams.get('jobId')
+  const messages = body.messages || []
+
   if (!jobId) return Response.json({ error: 'Missing jobId' }, { status: 400 })
+  if (!messages.length) return Response.json({ error: 'Missing messages' }, { status: 400 })
 
   const openAiApiKey = process.env.OPEN_AI_API_KEY
   if (!openAiApiKey) {
