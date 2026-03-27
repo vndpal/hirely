@@ -1,6 +1,6 @@
 // app/api/interview/route.ts
 import { createOpenAI } from '@ai-sdk/openai'
-import { streamText } from 'ai'
+import { streamText, convertToModelMessages } from 'ai'
 import { getJob } from '@/lib/notion'
 import { interviewPrompt } from '@/lib/prompts'
 
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o-mini'),
     system,
-    messages,
+    messages: await convertToModelMessages(messages),
   })
 
   return result.toTextStreamResponse()

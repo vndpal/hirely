@@ -1,58 +1,75 @@
 "use client";
-import { useCompletion } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
 import { useEffect, useRef, useState } from "react";
 
 export default function Apply({ params }: { params: { jobId: string } }) {
   const bottom = useRef<HTMLDivElement>(null);
   const [done, setDone] = useState(false);
-
-  type Msg = { id: string; role: "user" | "assistant"; text: string };
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const greetingRef = useRef(false);
+  const [input, setInput] = useState("");
 
   const {
-    completion,
-    input,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
-    setCompletion,
-  } = useCompletion({
+    messages,
+    sendMessage,
+    status,
+    setMessages,
+  } = useChat({
+    // In this version, the configuration might be different. 
+    // Usually 'api' is part of ChatInit if not using a Chat instance.
+    // However, the types showed ChatInit having it.
+    // @ts-ignore
     api: "/api/interview",
+    // @ts-ignore
     body: { jobId: params.jobId },
-  });
-
-  // append assistant message when completion finishes
-  useEffect(() => {
-    if (isLoading) return;
-    if (!completion) return;
-    const assistantText = completion;
-    setMessages((m) => [
-      ...m,
-      { id: Date.now().toString(), role: "assistant", text: assistantText },
-    ]);
-    setCompletion("");
-    if (assistantText.includes("[SESSION_COMPLETE]")) {
-      setDone(true);
-      const transcript = [
-        ...messages,
-        { id: "x", role: "assistant", text: assistantText },
-      ]
-        .map((m) => `${m.role === "user" ? "Candidate" : "AI"}: ${m.text}`)
-        .join("\n");
-      (async () => {
+    onFinish: async ({ message, messages: fullMessages }) => {
+      const text = getMessageText(message);
+      if (text.includes("[SESSION_COMPLETE]")) {
+        setDone(true);
+        const transcript = fullMessages
+          .map((m) => `${m.role === "user" ? "Candidate" : "AI"}: ${getMessageText(m)}`)
+          .join("\n");
+        
         await fetch("/api/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ transcript, jobId: params.jobId }),
         });
-      })();
+      }
+    },
+  });
+
+  const isLoading = status === "streaming" || status === "submitted";
+
+  function getMessageText(m: any): string {
+    if (!m.parts) return "";
+    return m.parts
+      .filter((p: any) => p.type === "text" || p.type === "reasoning")
+      .map((p: any) => p.text)
+      .join("");
+  }
+
+  // Initial greeting trigger
+  useEffect(() => {
+    if (!greetingRef.current && sendMessage) {
+      greetingRef.current = true;
+      sendMessage({
+        text: "Hello, I am ready for the interview.",
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, completion]);
+  }, [sendMessage]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const onSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    sendMessage({
+      text: input,
+    });
+    setInput("");
+  };
 
   if (done)
     return (
@@ -75,37 +92,27 @@ export default function Apply({ params }: { params: { jobId: string } }) {
       </div>
       <div style={s.msgs}>
         {messages
-          .filter((m) => !m.text.includes("[SESSION_COMPLETE]"))
+          .filter((m) => !getMessageText(m).includes("[SESSION_COMPLETE]"))
           .map((m) => (
             <div
               key={m.id}
               style={m.role === "user" ? s.userBubble : s.aiBubble}
             >
-              {m.text}
+              {getMessageText(m)}
             </div>
           ))}
         <div ref={bottom} />
       </div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          setMessages((m) => [
-            ...m,
-            { id: Date.now().toString(), role: "user", text: input },
-          ]);
-          handleSubmit(e);
-        }}
-        style={s.bar}
-      >
+      <form onSubmit={onSend} style={s.bar}>
         <input
           style={s.input}
           value={input}
-          onChange={handleInputChange}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Type your answer..."
           autoFocus
         />
-        <button style={s.btn} type="submit">
-          Send
+        <button style={s.btn} type="submit" disabled={isLoading}>
+          {isLoading ? "..." : "Send"}
         </button>
       </form>
     </div>
