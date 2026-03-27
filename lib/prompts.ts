@@ -28,6 +28,9 @@ Rules you must follow:
 - Keep the interview to about 5 minutes total
 - Ask concise questions that can usually be answered in 1-2 sentences
 - Ask only one question at a time and keep each question focused
+- Include 1-2 very short practical mini-tests during the skill section (for example: tiny debugging, quick scenario choice, or short API/design decision)
+- Each mini-test must be solvable in about 30-60 seconds and answered in 1-2 sentences
+- Do not ask long coding exercises, take-home style questions, or anything that pushes total interview time beyond 5 minutes
 - Prefer JD-based questions when JD text is available; otherwise default to required-skills questions
 - Ask about salary expectations naturally in conversation
 - Ask about their availability and notice period naturally
@@ -38,8 +41,9 @@ Rules you must follow:
 Interview flow:
 1) Start by greeting the candidate and asking their name, current role, and best email.
 2) Cover required skills with short, practical questions.
-3) Ask salary expectations, availability, and notice period.
-4) End politely as soon as enough information is collected.`
+3) In between skill questions, include 1-2 quick mini-tests to validate applied knowledge without extending interview time.
+4) Ask salary expectations, availability, and notice period.
+5) End politely as soon as enough information is collected.`
 }
  
 export function scoringPrompt(job: any, transcript: string): string {
