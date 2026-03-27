@@ -17,7 +17,6 @@ export default function Apply() {
     messages,
     sendMessage,
     status,
-    setMessages,
   } = useChat({
     // In this version, the configuration might be different. 
     // Usually 'api' is part of ChatInit if not using a Chat instance.
@@ -47,12 +46,34 @@ export default function Apply() {
 
   const isLoading = status === "streaming" || status === "submitted";
 
-  function getMessageText(m: any): string {
-    if (!m.parts) return "";
-    return m.parts
-      .filter((p: any) => p.type === "text" || p.type === "reasoning")
-      .map((p: any) => p.text)
-      .join("");
+  function getMessageText(message: any): string {
+    // Support both AI SDK message formats:
+    // - parts-based messages (newer UIMessage format)
+    // - content string / content[] (legacy or text-stream fallback)
+    if (Array.isArray(message?.parts)) {
+      return message.parts
+        .filter((p: any) => p?.type === "text" || p?.type === "reasoning")
+        .map((p: any) => p?.text ?? "")
+        .join("")
+        .trim();
+    }
+
+    if (typeof message?.content === "string") {
+      return message.content.trim();
+    }
+
+    if (Array.isArray(message?.content)) {
+      return message.content
+        .map((part: any) =>
+          typeof part === "string"
+            ? part
+            : part?.text ?? part?.content ?? ""
+        )
+        .join("")
+        .trim();
+    }
+
+    return "";
   }
 
   // Initial greeting trigger
@@ -100,6 +121,7 @@ export default function Apply() {
       <div style={s.msgs}>
         {messages
           .filter((m) => !getMessageText(m).includes("[SESSION_COMPLETE]"))
+          .filter((m) => getMessageText(m).length > 0)
           .map((m) => (
             <div
               key={m.id}
