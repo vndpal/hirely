@@ -1,12 +1,17 @@
 "use client";
 import { useChat } from "@ai-sdk/react";
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 
-export default function Apply({ params }: { params: { jobId: string } }) {
+export default function Apply() {
+  const params = useParams();
+  const jobId = params?.jobId as string;
   const bottom = useRef<HTMLDivElement>(null);
   const [done, setDone] = useState(false);
   const greetingRef = useRef(false);
   const [input, setInput] = useState("");
+
+  console.log("Apply component rendered, jobId:", jobId);
 
   const {
     messages,
@@ -18,11 +23,11 @@ export default function Apply({ params }: { params: { jobId: string } }) {
     // Usually 'api' is part of ChatInit if not using a Chat instance.
     // However, the types showed ChatInit having it.
     // @ts-ignore
-    api: "/api/chat?jobId=" + params.jobId,
+    api: `/api/chat?jobId=${jobId}`,
     headers: {
-      "x-job-id": params.jobId,
+      "x-job-id": jobId || "",
     },
-    body: { jobId: params.jobId },
+    body: { jobId },
     onFinish: async ({ message, messages: fullMessages }) => {
       const text = getMessageText(message);
       if (text.includes("[SESSION_COMPLETE]")) {
