@@ -1,6 +1,7 @@
 "use client";
 import { useChat } from "@ai-sdk/react";
-import { useEffect, useRef, useState } from "react";
+import { DefaultChatTransport } from "ai";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 export default function Apply() {
@@ -13,20 +14,22 @@ export default function Apply() {
 
   console.log("Apply component rendered, jobId:", jobId);
 
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: jobId ? `/api/chat/${jobId}` : "/api/chat",
+        headers: { "x-job-id": jobId || "" },
+        body: { jobId },
+      }),
+    [jobId]
+  );
+
   const {
     messages,
     sendMessage,
     status,
   } = useChat({
-    // In this version, the configuration might be different. 
-    // Usually 'api' is part of ChatInit if not using a Chat instance.
-    // However, the types showed ChatInit having it.
-    // @ts-ignore
-    api: `/api/chat/${jobId}`,
-    headers: {
-      "x-job-id": jobId || "",
-    },
-    body: { jobId },
+    transport,
     onFinish: async ({ message, messages: fullMessages }) => {
       const text = getMessageText(message);
       if (text.includes("[SESSION_COMPLETE]")) {

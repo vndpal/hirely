@@ -36,5 +36,6 @@ export async function POST(req: Request, { params }: { params: { jobId: string }
     messages: await convertToModelMessages(messages),
   })
 
-  return result.toTextStreamResponse()
+  // useChat (AI SDK 6) expects a UI message stream, not a raw text stream.
+  return result.toUIMessageStreamResponse({ originalMessages: messages })
 }
