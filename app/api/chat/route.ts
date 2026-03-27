@@ -1,4 +1,4 @@
-// app/api/interview/route.ts
+// app/api/chat/route.ts
 import { createOpenAI } from '@ai-sdk/openai'
 import { streamText, convertToModelMessages } from 'ai'
 import { getJob } from '@/lib/notion'

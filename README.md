@@ -12,6 +12,6 @@ Set the following required environment variable:
 
 ## API behavior
 
-- `app/api/interview/route.ts` calls OpenAI Chat Completions (`gpt-4o-mini`) with streaming enabled.
+- `app/api/chat/route.ts` calls OpenAI Chat Completions (`gpt-4o-mini`) with streaming enabled.
 - The route injects the interview system prompt and the incoming user/assistant messages.
 - If `OPEN_AI_API_KEY` is missing, the route returns a server error.
