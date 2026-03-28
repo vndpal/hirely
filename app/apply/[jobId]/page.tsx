@@ -109,6 +109,15 @@ export default function Apply() {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
+  // Auto-focus after AI is done
+  const wasStreaming = useRef(false);
+  useEffect(() => {
+    if (wasStreaming.current && !isStreaming) {
+      inputRef.current?.focus();
+    }
+    wasStreaming.current = isStreaming;
+  }, [isStreaming]);
+
   // Auto-resize textarea
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
