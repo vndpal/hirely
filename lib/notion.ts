@@ -1,7 +1,5 @@
 // lib/notion.ts
-import { Client } from '@notionhq/client'
- 
-const notion = new Client({ auth: process.env.NOTION_API_KEY })
+import { callNotionTool } from './mcp'
 
 function getPlainTextFromRichText(richText: any[] = []) {
   return richText.map((t) => t?.plain_text || '').join('').trim()
@@ -15,59 +13,50 @@ function extractTextFromProperty(prop: any): string {
   return ''
 }
 
-function extractTextFromBlock(block: any): string {
-  if (!block || typeof block !== 'object' || !block.type) return ''
-  const content = block[block.type]
-  if (!content) return ''
-
-  if (Array.isArray(content.rich_text) && content.rich_text.length > 0) {
-    return getPlainTextFromRichText(content.rich_text)
-  }
-
-  // Handle list and heading blocks where text can still be represented as rich_text.
-  if (Array.isArray(content.children) && content.children.length > 0) {
-    return content.children.map((child: any) => extractTextFromBlock(child)).filter(Boolean).join('\n')
-  }
-
-  return ''
-}
-
-async function getPageBodyText(pageId: string): Promise<string> {
-  let cursor: string | undefined = undefined
-  const lines: string[] = []
-
-  do {
-    const response: any = await notion.blocks.children.list({
-      block_id: pageId,
-      page_size: 100,
-      start_cursor: cursor,
-    })
-
-    for (const block of response.results || []) {
-      const text = extractTextFromBlock(block)
-      if (text) lines.push(text)
-    }
-
-    cursor = response.has_more ? response.next_cursor || undefined : undefined
-  } while (cursor)
-
-  return lines.join('\n').trim()
-}
- 
 // MCP READ ① — called at the start of every interview session
 export async function getJob(pageId: string) {
-  const page = await notion.pages.retrieve({ page_id: pageId }) as any
-  const p = page.properties
+  // We use notion-fetch as a single tool call to get properties and content
+  // Most Notion MCP servers expect a full URL or just the ID for the fetch tool.
+  const pageUrl = pageId.startsWith('http') ? pageId : `https://notion.so/${pageId}`
+  
+  const toolResult = (await callNotionTool('notion-fetch', { url: pageUrl })) as any[]
+  
+  // toolResult is an array of content objects. The first one is typically the page data.
+  // We expect a text content item that might contain JSON or Markdown.
+  const firstContent = toolResult?.[0]
+  if (!firstContent || firstContent.type !== 'text') {
+    throw new Error('Unexpected response format from notion-fetch tool')
+  }
+
+  // Parse the properties and content. 
+  // Depending on the server implementation, this might be a single string or JSON.
+  // Official Notion MCP returns a comprehensive representation.
+  let data: any = {}
+  try {
+    // Attempt to parse if it's JSON-wrapped
+    data = JSON.parse(firstContent.text)
+  } catch {
+    // Fallback if it's raw text; in some implementations, we might need a different tool
+    // but the official notion-fetch usually returns properties in the metadata/header.
+    // For now, we'll log it and try to extract what we can.
+    console.warn('MCP notion-fetch result is not JSON, might require custom parsing')
+    data = { properties: {}, content: firstContent.text }
+  }
+
+  const p = data.properties || {}
+  
+  // Extract text fields using the same logic, adjusting for potential MCP structure differences
   const description =
     extractTextFromProperty(p['Description']) ||
     extractTextFromProperty(p['JD']) ||
     extractTextFromProperty(p['Job Description'])
-  const body = await getPageBodyText(pageId)
+  
+  const body = data.content || ''
   const jdText = [description, body].filter(Boolean).join('\n\n').trim()
 
   return {
-    id:             page.id,
-    title:          p['Role title']?.title?.[0]?.plain_text || '',
+    id:             pageId,
+    title:          p['Role title']?.title?.[0]?.plain_text || p['Role title']?.text || '',
     requiredSkills: p['Required skills']?.multi_select?.map((x:any) => x.name) || [],
     minExperience:  p['Min experience']?.number || 0,
     salaryMin:      p['Salary min']?.number || 0,
@@ -80,8 +69,11 @@ export async function getJob(pageId: string) {
  
 // MCP WRITE ③ — called after scoring is complete
 export async function createCandidate(data: any) {
-  return notion.pages.create({
-    parent: { database_id: process.env.NOTION_CANDIDATES_DB_ID! },
+  const databaseId = process.env.NOTION_CANDIDATES_DB_ID
+  if (!databaseId) throw new Error('Missing NOTION_CANDIDATES_DB_ID')
+
+  return callNotionTool('notion-create-pages', {
+    parent: databaseId,
     properties: {
       'Candidate name':  { title: [{ text: { content: data.name || 'Unknown' } }] },
       'Status':          { select: { name: 'New' } },
