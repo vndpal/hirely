@@ -1,71 +1,77 @@
 // lib/notion.ts
 import { callNotionTool } from './mcp'
 
-function getPlainTextFromRichText(richText: any[] = []) {
-  return richText.map((t) => t?.plain_text || '').join('').trim()
-}
-
-function extractTextFromProperty(prop: any): string {
-  if (!prop || typeof prop !== 'object') return ''
-
-  if (prop.type === 'rich_text') return getPlainTextFromRichText(prop.rich_text)
-  if (prop.type === 'title') return getPlainTextFromRichText(prop.title)
-  return ''
-}
-
-// MCP READ ① — called at the start of every interview session
+// MCP READ — called at the start of every interview session
 export async function getJob(pageId: string) {
-  // Strip dashes and any URL prefix — pass the raw page ID
   const id = pageId.replace(/-/g, '').replace(/^https?:\/\/.*\//, '')
 
   const toolResult = (await callNotionTool('notion-fetch', { id })) as any[]
-  
-  // toolResult is an array of content objects. The first one is typically the page data.
-  // We expect a text content item that might contain JSON or Markdown.
-  const firstContent = toolResult?.[0]
-  console.log("MCP notion-fetch raw response type:", firstContent?.type)
-  console.log("MCP notion-fetch raw text (first 2000 chars):", firstContent?.text?.slice(0, 2000))
 
+  const firstContent = toolResult?.[0]
   if (!firstContent || firstContent.type !== 'text') {
     throw new Error('Unexpected response format from notion-fetch tool')
   }
 
-  // The Notion MCP server returns markdown, not JSON.
-  // Parse the markdown to extract properties and content.
   const rawText = firstContent.text
-  let data: any = {}
+
+  // The Notion MCP server returns JSON: { metadata, title, url, text }
+  // where `text` contains XML-like <properties> and <content> sections
+  let outer: any = {}
   try {
-    data = JSON.parse(rawText)
+    outer = JSON.parse(rawText)
   } catch {
-    // Notion MCP returns markdown — parse it
-    data = { properties: {}, content: rawText }
+    outer = { text: rawText }
   }
 
-  const p = data.properties || {}
-  
-  // Extract text fields using the same logic, adjusting for potential MCP structure differences
-  const description =
-    extractTextFromProperty(p['Description']) ||
-    extractTextFromProperty(p['JD']) ||
-    extractTextFromProperty(p['Job Description'])
-  
-  const body = data.content || ''
-  const jdText = [description, body].filter(Boolean).join('\n\n').trim()
+  const pageText = outer.text || rawText
+
+  // Extract flat properties JSON from <properties>...</properties>
+  let props: any = {}
+  const propsMatch = pageText.match(/<properties>\s*([\s\S]*?)\s*<\/properties>/)
+  if (propsMatch) {
+    try {
+      props = JSON.parse(propsMatch[1])
+    } catch {
+      console.warn('Failed to parse <properties> JSON')
+    }
+  }
+
+  // Extract page body content from <content>...</content>
+  let content = ''
+  const contentMatch = pageText.match(/<content>\s*([\s\S]*?)\s*<\/content>/)
+  if (contentMatch) {
+    content = contentMatch[1].trim()
+  }
+
+  // Properties from Notion MCP are flat key-value pairs, not Notion API format
+  const title = props['Role title'] || outer.title || ''
+  const requiredSkills = Array.isArray(props['Required skills'])
+    ? props['Required skills']
+    : []
+  const minExperience = props['Min experience'] || 0
+  const salaryMin = props['Salary min'] || 0
+  const salaryMax = props['Salary max'] || 0
+  const threshold = props['Match threshold'] || 40
+  const hrEmail = props['HR Email'] || ''
+
+  const jdText = content || ''
+
+  console.log('Parsed job from MCP:', { title, requiredSkills, minExperience, salaryMin, salaryMax, jdTextLength: jdText.length })
 
   return {
-    id:             pageId,
-    title:          p['Role title']?.title?.[0]?.plain_text || p['Role title']?.text || '',
-    requiredSkills: p['Required skills']?.multi_select?.map((x:any) => x.name) || [],
-    minExperience:  p['Min experience']?.number || 0,
-    salaryMin:      p['Salary min']?.number || 0,
-    salaryMax:      p['Salary max']?.number || 0,
-    threshold:      p['Match threshold']?.number || 40,
-    hrEmail:        p['HR Email']?.email || '',
+    id: pageId,
+    title,
+    requiredSkills,
+    minExperience,
+    salaryMin,
+    salaryMax,
+    threshold,
+    hrEmail,
     jdText,
   }
 }
- 
-// MCP WRITE ③ — called after scoring is complete
+
+// MCP WRITE — called after scoring is complete
 export async function createCandidate(data: any) {
   const databaseId = process.env.NOTION_CANDIDATES_DB_ID
   if (!databaseId) throw new Error('Missing NOTION_CANDIDATES_DB_ID')
