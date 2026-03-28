@@ -1,5 +1,5 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js"
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
 
 export async function callNotionTool(toolName: string, args: any) {
   const token = process.env.NOTION_API_KEY
@@ -7,13 +7,14 @@ export async function callNotionTool(toolName: string, args: any) {
     throw new Error("Missing NOTION_API_KEY environment variable")
   }
 
-  // Use the official Notion MCP SSE endpoint
-  const transport = new SSEClientTransport(
-    new URL("https://mcp.notion.com/sse"),
+  // Use the official Notion MCP Streamable HTTP endpoint
+  const transport = new StreamableHTTPClientTransport(
+    new URL("https://mcp.notion.com/mcp"),
     {
       requestInit: {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Notion-Version": "2022-06-28",
         },
       },
     }
