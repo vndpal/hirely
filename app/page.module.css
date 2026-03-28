@@ -573,6 +573,149 @@
   font-size: 11px;
 }
 
+/* MCP touchpoints section */
+.mcpSection {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 48px 80px;
+  animation: fadeUp 0.6s 0.35s ease both;
+}
+
+.mcpGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.mcpCard {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.mcpIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #3b82f6;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.mcpIconWrite {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.mcpCardTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.mcpCardDesc {
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+/* Architecture section */
+.archSection {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 80px 48px;
+  border-top: 1px solid var(--border);
+  animation: fadeUp 0.6s 0.45s ease both;
+}
+
+.archDiagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.archNode {
+  text-align: center;
+  padding: 24px 32px;
+}
+
+.archNodeIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #f4f4f1;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.archNodeIconApp {
+  background: var(--ink);
+  color: #fff;
+}
+
+.archNodeIconN8n {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.archNodeLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+
+.archNodeSub {
+  font-size: 11px;
+  color: var(--ink2);
+  font-weight: 300;
+}
+
+.archArrow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 400;
+  min-width: 100px;
+  justify-content: center;
+  position: relative;
+}
+
+.archArrow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.archArrow span {
+  position: relative;
+  z-index: 1;
+  background: var(--paper);
+  padding: 2px 8px;
+  letter-spacing: 0.02em;
+}
+
 @keyframes pulse {
   0%,
   100% {
@@ -649,6 +792,29 @@
     margin: 0 24px 56px;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .mcpSection {
+    padding: 0 24px 56px;
+  }
+
+  .mcpGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .archSection {
+    padding: 56px 24px;
+  }
+
+  .archDiagram {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .archArrow {
+    min-width: auto;
+    transform: rotate(90deg);
+    min-height: 40px;
   }
 
   .ctaSection {

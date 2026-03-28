@@ -4,15 +4,43 @@ import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
+function TypingIndicator() {
+  return (
+    <div style={s.typingWrap}>
+      <div style={s.typingDots}>
+        <span style={{ ...s.typingDot, animationDelay: "0ms" }} />
+        <span style={{ ...s.typingDot, animationDelay: "160ms" }} />
+        <span style={{ ...s.typingDot, animationDelay: "320ms" }} />
+      </div>
+    </div>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
+function StreamingIcon() {
+  return (
+    <div style={s.streamingIcon}>
+      <div style={s.streamingBar} />
+    </div>
+  );
+}
+
 export default function Apply() {
   const params = useParams();
   const jobId = params?.jobId as string;
   const bottom = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [done, setDone] = useState(false);
   const greetingRef = useRef(false);
   const [input, setInput] = useState("");
-
-  console.log("Apply component rendered, jobId:", jobId);
 
   const transport = useMemo(
     () =>
@@ -37,7 +65,7 @@ export default function Apply() {
         const transcript = fullMessages
           .map((m) => `${m.role === "user" ? "Candidate" : "AI"}: ${getMessageText(m)}`)
           .join("\n");
-        
+
         await fetch("/api/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -47,12 +75,11 @@ export default function Apply() {
     },
   });
 
-  const isLoading = status === "streaming" || status === "submitted";
+  const isStreaming = status === "streaming";
+  const isSubmitted = status === "submitted";
+  const isLoading = isStreaming || isSubmitted;
 
   function getMessageText(message: any): string {
-    // Support both AI SDK message formats:
-    // - parts-based messages (newer UIMessage format)
-    // - content string / content[] (legacy or text-stream fallback)
     if (Array.isArray(message?.parts)) {
       return message.parts
         .filter((p: any) => p?.type === "text" || p?.type === "reasoning")
@@ -60,22 +87,13 @@ export default function Apply() {
         .join("")
         .trim();
     }
-
-    if (typeof message?.content === "string") {
-      return message.content.trim();
-    }
-
+    if (typeof message?.content === "string") return message.content.trim();
     if (Array.isArray(message?.content)) {
       return message.content
-        .map((part: any) =>
-          typeof part === "string"
-            ? part
-            : part?.text ?? part?.content ?? ""
-        )
+        .map((part: any) => typeof part === "string" ? part : part?.text ?? part?.content ?? "")
         .join("")
         .trim();
     }
-
     return "";
   }
 
@@ -83,33 +101,61 @@ export default function Apply() {
   useEffect(() => {
     if (!greetingRef.current && sendMessage) {
       greetingRef.current = true;
-      sendMessage({
-        text: "Hello, I am ready for the interview.",
-      });
+      sendMessage({ text: "Hello, I am ready for the interview." });
     }
   }, [sendMessage]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isLoading]);
 
-  const onSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    sendMessage({
-      text: input,
-    });
-    setInput("");
+  // Auto-resize textarea
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const el = e.target;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      onSend();
+    }
+  };
+
+  const onSend = () => {
+    if (!input.trim() || isLoading) return;
+    sendMessage({ text: input });
+    setInput("");
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
+  };
+
+  // Filter visible messages
+  const visible = messages
+    .filter((m) => !getMessageText(m).includes("[SESSION_COMPLETE]"))
+    .filter((m) => getMessageText(m).length > 0);
+
+  // Hide the first user message (auto-greeting)
+  const displayed = visible.filter((_, i) => !(i === 0 && visible[0]?.role === "user"));
 
   if (done)
     return (
       <div style={s.center}>
-        <div style={s.card}>
-          <div style={s.checkmark}>✓</div>
-          <h2 style={s.thankTitle}>Application received</h2>
-          <p style={s.thankSub}>
-            Thank you for your time. We will be in touch soon.
+        <div style={s.doneCard}>
+          <div style={s.doneIcon}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h2 style={s.doneTitle}>Interview complete</h2>
+          <p style={s.doneSub}>
+            Thank you for taking the time to speak with us. Your responses have been recorded and will be reviewed by our hiring team.
+          </p>
+          <p style={s.doneNote}>
+            If your profile is a match, we will reach out with next steps. We appreciate your interest and wish you the best.
           </p>
         </div>
       </div>
@@ -118,35 +164,64 @@ export default function Apply() {
   return (
     <div style={s.page}>
       <div style={s.topbar}>
-        <span style={s.brand}>Hirely</span>
-        <span style={s.tag}>AI Interview</span>
+        <div style={s.topLeft}>
+          <span style={s.brand}>Hirely</span>
+        </div>
+        <div style={s.topRight}>
+          <span style={s.liveTag}>
+            <span style={s.liveDot} />
+            Live
+          </span>
+        </div>
       </div>
+
       <div style={s.msgs}>
-        {messages
-          .filter((m) => !getMessageText(m).includes("[SESSION_COMPLETE]"))
-          .filter((m) => getMessageText(m).length > 0)
-          .map((m) => (
-            <div
-              key={m.id}
-              style={m.role === "user" ? s.userBubble : s.aiBubble}
-            >
+        {displayed.map((m) => (
+          <div key={m.id} style={s.msgRow}>
+            {m.role !== "user" && (
+              <div style={s.avatar}>H</div>
+            )}
+            <div style={m.role === "user" ? s.userBubble : s.aiBubble}>
               {getMessageText(m)}
             </div>
-          ))}
+          </div>
+        ))}
+        {isSubmitted && (
+          <div style={s.msgRow}>
+            <div style={s.avatar}>H</div>
+            <TypingIndicator />
+          </div>
+        )}
         <div ref={bottom} />
       </div>
-      <form onSubmit={onSend} style={s.bar}>
-        <input
-          style={s.input}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your answer..."
-          autoFocus
-        />
-        <button style={s.btn} type="submit" disabled={isLoading}>
-          {isLoading ? "..." : "Send"}
-        </button>
-      </form>
+
+      <div style={s.barWrap}>
+        <div style={s.bar}>
+          <textarea
+            ref={inputRef}
+            style={s.input}
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Type your answer..."
+            rows={1}
+            disabled={isLoading}
+          />
+          <button
+            style={{
+              ...s.sendBtn,
+              ...(isStreaming ? s.sendBtnStreaming : {}),
+              ...((!input.trim() && !isStreaming) ? s.sendBtnDisabled : {}),
+            }}
+            onClick={isStreaming ? undefined : onSend}
+            disabled={!input.trim() && !isStreaming}
+            type="button"
+          >
+            {isStreaming ? <StreamingIcon /> : <SendIcon />}
+          </button>
+        </div>
+        <div style={s.hint}>Press Enter to send, Shift+Enter for new line</div>
+      </div>
     </div>
   );
 }
@@ -155,103 +230,234 @@ const s: Record<string, React.CSSProperties> = {
   page: {
     display: "flex",
     flexDirection: "column",
-    height: "100vh",
-    background: "#faf9f7",
-    fontFamily: "system-ui,sans-serif",
+    height: "100dvh",
+    background: "#fafafa",
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
   },
   topbar: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "14px 24px",
-    borderBottom: "1px solid #e8e5e0",
+    padding: "16px 24px",
+    borderBottom: "1px solid #f0f0f0",
     background: "#fff",
   },
-  brand: { fontSize: 18, fontWeight: 600, color: "#0d0d0d" },
-  tag: {
-    fontSize: 12,
-    color: "#9ca3af",
-    background: "#f3f4f6",
-    padding: "3px 10px",
+  topLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  topRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  brand: {
+    fontSize: 17,
+    fontWeight: 600,
+    color: "#111",
+    letterSpacing: "-0.01em",
+  },
+  liveTag: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 11,
+    fontWeight: 500,
+    color: "#16a34a",
+    background: "#f0fdf4",
+    padding: "4px 10px",
     borderRadius: 20,
+    letterSpacing: "0.01em",
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    background: "#16a34a",
+    animation: "pulse 2s ease-in-out infinite",
   },
   msgs: {
     flex: 1,
     overflowY: "auto",
-    padding: "28px 24px",
+    padding: "24px 0",
     display: "flex",
     flexDirection: "column",
-    gap: 14,
+    gap: 4,
+  },
+  msgRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: "4px 24px",
+    maxWidth: 720,
+    width: "100%",
+    margin: "0 auto",
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: "50%",
+    background: "#111",
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 2,
   },
   aiBubble: {
-    alignSelf: "flex-start",
-    maxWidth: "68%",
-    background: "#fff",
-    border: "1px solid #e8e5e0",
-    borderRadius: "4px 16px 16px 16px",
-    padding: "12px 16px",
     fontSize: 14,
-    color: "#0d0d0d",
-    lineHeight: 1.65,
+    color: "#1a1a1a",
+    lineHeight: 1.7,
+    padding: "8px 0",
+    whiteSpace: "pre-wrap" as const,
   },
   userBubble: {
-    alignSelf: "flex-end",
-    maxWidth: "68%",
-    background: "#4F46E5",
-    borderRadius: "16px 4px 16px 16px",
-    padding: "12px 16px",
+    marginLeft: "auto",
+    maxWidth: "80%",
+    background: "#111",
+    borderRadius: "18px 18px 4px 18px",
+    padding: "10px 16px",
     fontSize: 14,
     color: "#fff",
-    lineHeight: 1.65,
+    lineHeight: 1.6,
+  },
+  typingWrap: {
+    padding: "10px 0",
+  },
+  typingDots: {
+    display: "flex",
+    gap: 4,
+    alignItems: "center",
+  },
+  typingDot: {
+    width: 7,
+    height: 7,
+    borderRadius: "50%",
+    background: "#c0c0c0",
+    display: "inline-block",
+    animation: "typingBounce 1.2s ease-in-out infinite",
+  },
+  barWrap: {
+    borderTop: "1px solid #f0f0f0",
+    background: "#fff",
+    padding: "12px 24px 8px",
   },
   bar: {
     display: "flex",
+    alignItems: "flex-end",
     gap: 8,
-    padding: "14px 20px",
-    borderTop: "1px solid #e8e5e0",
-    background: "#fff",
+    maxWidth: 720,
+    margin: "0 auto",
+    background: "#f5f5f5",
+    borderRadius: 16,
+    padding: "6px 6px 6px 16px",
+    transition: "box-shadow 0.15s",
   },
   input: {
     flex: 1,
-    padding: "11px 16px",
-    border: "1px solid #e5e7eb",
-    borderRadius: 10,
-    fontSize: 14,
-    outline: "none",
-    fontFamily: "system-ui,sans-serif",
-  },
-  btn: {
-    padding: "11px 22px",
-    background: "#0d0d0d",
-    color: "#fff",
+    padding: "8px 0",
     border: "none",
-    borderRadius: 10,
+    background: "transparent",
     fontSize: 14,
+    lineHeight: 1.5,
+    outline: "none",
+    fontFamily: "inherit",
+    resize: "none" as const,
+    color: "#111",
+    maxHeight: 120,
+  },
+  sendBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    border: "none",
+    background: "#111",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     cursor: "pointer",
-    fontWeight: 500,
+    flexShrink: 0,
+    transition: "background 0.15s, opacity 0.15s",
+  },
+  sendBtnDisabled: {
+    background: "#d4d4d4",
+    cursor: "default",
+  },
+  sendBtnStreaming: {
+    background: "#111",
+    cursor: "default",
+  },
+  streamingIcon: {
+    width: 16,
+    height: 16,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  streamingBar: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
+    background: "#fff",
+    animation: "streamPulse 1s ease-in-out infinite",
+  },
+  hint: {
+    textAlign: "center" as const,
+    fontSize: 11,
+    color: "#b0b0b0",
+    padding: "6px 0 2px",
+    letterSpacing: "0.01em",
   },
   center: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    height: "100vh",
-    background: "#faf9f7",
+    height: "100dvh",
+    background: "#fafafa",
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+    padding: 24,
   },
-  card: {
+  doneCard: {
     background: "#fff",
-    border: "1px solid #e8e5e0",
+    border: "1px solid #f0f0f0",
     borderRadius: 20,
-    padding: "52px 48px",
-    textAlign: "center",
-    maxWidth: 380,
+    padding: "48px 40px",
+    textAlign: "center" as const,
+    maxWidth: 420,
+    boxShadow: "0 4px 24px rgba(0,0,0,0.04)",
   },
-  checkmark: { fontSize: 36, color: "#16a34a", marginBottom: 16 },
-  thankTitle: {
-    fontSize: 22,
+  doneIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: "50%",
+    background: "#f0fdf4",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 20px",
+  },
+  doneTitle: {
+    fontSize: 20,
     fontWeight: 600,
-    color: "#0d0d0d",
-    marginBottom: 10,
-    margin: "0 0 10px",
+    color: "#111",
+    margin: "0 0 12px",
+    letterSpacing: "-0.01em",
   },
-  thankSub: { fontSize: 14, color: "#6b7280", lineHeight: 1.65, margin: 0 },
+  doneSub: {
+    fontSize: 14,
+    color: "#555",
+    lineHeight: 1.7,
+    margin: "0 0 16px",
+  },
+  doneNote: {
+    fontSize: 13,
+    color: "#888",
+    lineHeight: 1.6,
+    margin: 0,
+  },
 };
