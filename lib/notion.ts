@@ -15,11 +15,10 @@ function extractTextFromProperty(prop: any): string {
 
 // MCP READ ① — called at the start of every interview session
 export async function getJob(pageId: string) {
-  // We use notion-fetch as a single tool call to get properties and content
-  // Most Notion MCP servers expect a full URL or just the ID for the fetch tool.
-  const pageUrl = pageId.startsWith('http') ? pageId : `https://notion.so/${pageId}`
-  
-  const toolResult = (await callNotionTool('notion-fetch', { url: pageUrl })) as any[]
+  // Strip dashes and any URL prefix — pass the raw page ID
+  const id = pageId.replace(/-/g, '').replace(/^https?:\/\/.*\//, '')
+
+  const toolResult = (await callNotionTool('notion-fetch', { id })) as any[]
   
   // toolResult is an array of content objects. The first one is typically the page data.
   // We expect a text content item that might contain JSON or Markdown.

@@ -49,9 +49,30 @@ async function getAccessToken(): Promise<string> {
   )
 }
 
-export async function callNotionTool(toolName: string, args: any) {
+export async function listNotionTools() {
   const token = await getAccessToken()
 
+  const transport = new StreamableHTTPClientTransport(
+    new URL(`${MCP_BASE}/mcp`),
+    { requestInit: { headers: { Authorization: `Bearer ${token}` } } }
+  )
+
+  const client = new Client(
+    { name: "hirely-mcp-client", version: "1.0.0" },
+    { capabilities: {} }
+  )
+
+  try {
+    await client.connect(transport)
+    const { tools } = await client.listTools()
+    return tools
+  } finally {
+    await client.close()
+  }
+}
+
+export async function callNotionTool(toolName: string, args: any) {
+  const token = await getAccessToken()
   const transport = new StreamableHTTPClientTransport(
     new URL(`${MCP_BASE}/mcp`),
     {
