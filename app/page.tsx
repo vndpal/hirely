@@ -95,6 +95,19 @@ export default function HomePage() {
         </div>
       </div>
 
+      <div className={styles.aiStrip}>
+        <div className={styles.aiIconWrap}>
+          <div className={`${styles.aiIcon} ${styles.aiIconClaude}`}>C</div>
+          <div className={`${styles.aiIcon} ${styles.aiIconGPT}`} style={{ marginLeft: '-12px' }}>G</div>
+        </div>
+        <div>
+          <div className={styles.aiTitle}>Works with ChatGPT and Claude</div>
+          <div className={styles.aiSub}>
+            Already use AI for drafting? Just ask Claude or ChatGPT to <em>"create a new requirement for [Role Name]"</em> via the Hirely MCP — it will create the JD in Notion for you and give you the interview link to share instantly.
+          </div>
+        </div>
+      </div>
+
       <section className={styles.mcpSection}>
         <div className={styles.sectionLabel}>4 MCP touchpoints</div>
         <div className={styles.mcpGrid}>
