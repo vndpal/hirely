@@ -28,7 +28,9 @@ export async function POST(req: Request, { params }: { params: { jobId: string }
 
   // MCP READ ② — fetch live JD from Notion before every single message
   const job = await getJob(jobId)
+  console.log("Job data from MCP:", JSON.stringify(job, null, 2))
   const system = interviewPrompt(job)
+  console.log("System prompt length:", system.length, "| title:", job.title, "| skills:", job.requiredSkills)
 
   const result = streamText({
     model: openai('gpt-4o-mini'),

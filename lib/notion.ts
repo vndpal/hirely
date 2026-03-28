@@ -23,23 +23,22 @@ export async function getJob(pageId: string) {
   // toolResult is an array of content objects. The first one is typically the page data.
   // We expect a text content item that might contain JSON or Markdown.
   const firstContent = toolResult?.[0]
+  console.log("MCP notion-fetch raw response type:", firstContent?.type)
+  console.log("MCP notion-fetch raw text (first 2000 chars):", firstContent?.text?.slice(0, 2000))
+
   if (!firstContent || firstContent.type !== 'text') {
     throw new Error('Unexpected response format from notion-fetch tool')
   }
 
-  // Parse the properties and content. 
-  // Depending on the server implementation, this might be a single string or JSON.
-  // Official Notion MCP returns a comprehensive representation.
+  // The Notion MCP server returns markdown, not JSON.
+  // Parse the markdown to extract properties and content.
+  const rawText = firstContent.text
   let data: any = {}
   try {
-    // Attempt to parse if it's JSON-wrapped
-    data = JSON.parse(firstContent.text)
+    data = JSON.parse(rawText)
   } catch {
-    // Fallback if it's raw text; in some implementations, we might need a different tool
-    // but the official notion-fetch usually returns properties in the metadata/header.
-    // For now, we'll log it and try to extract what we can.
-    console.warn('MCP notion-fetch result is not JSON, might require custom parsing')
-    data = { properties: {}, content: firstContent.text }
+    // Notion MCP returns markdown — parse it
+    data = { properties: {}, content: rawText }
   }
 
   const p = data.properties || {}
