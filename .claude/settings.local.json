@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Vinod/Projects/NotionMCP/hirely/app -type f \\\\\\(-name *.ts -o -name *.tsx -o -name *.js \\\\\\) ! -path */.next/*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:developers.notion.com)",
+      "WebFetch(domain:mcp.notion.com)"
+    ]
+  }
+}
