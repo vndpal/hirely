@@ -1,6 +1,5 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
 import { DM_Sans, Instrument_Serif } from 'next/font/google'
 import styles from './page.module.css'
 
@@ -16,21 +15,14 @@ const instrumentSerif = Instrument_Serif({
 })
 
 export default function HomePage() {
-  const [joinedWaitlist, setJoinedWaitlist] = useState(false)
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setJoinedWaitlist(true)
-  }
-
   return (
     <main className={`${styles.page} ${dmSans.className}`}>
       <nav className={styles.nav}>
         <div className={`${styles.logo} ${instrumentSerif.className}`}>
           Hire<em>ly</em>
         </div>
-        <a href="#waitlist" className={styles.navCta}>
-          Join waitlist
+        <a href="#quick-start" className={styles.navCta}>
+          Get started
         </a>
       </nav>
 
@@ -41,22 +33,40 @@ export default function HomePage() {
         </div>
 
         <h1 className={`${styles.heroTitle} ${instrumentSerif.className}`}>
-          Notion is your ATS.
+          Post jobs in Notion.
           <br />
-          <em>AI does the screening.</em>
+          <em>AI runs the interviews.</em>
         </h1>
 
         <p className={styles.heroSub}>
-          Create a job in Notion. Share a link. AI interviews every candidate, scores them, and writes a ranked card back to your Notion workspace. No new tools. No context switching.
+          Hirely turns your Notion workspace into a complete hiring engine. HR publishes a role, candidates apply in a smooth chat interview, and scored candidate cards are written back to Notion automatically.
         </p>
 
         <div className={styles.heroActions}>
-          <a href="#waitlist" className={styles.btnPrimary}>
-            Get early access
+          <a href="#quick-start" className={styles.btnPrimary}>
+            Quick start in 2 minutes
           </a>
           <a href="#how" className={styles.btnGhost}>
             See the full workflow →
           </a>
+        </div>
+      </section>
+
+      <section className={styles.valueSection}>
+        <div className={styles.sectionLabel}>Why teams choose Hirely</div>
+        <div className={styles.valueGrid}>
+          <div className={styles.valueCard}>
+            <div className={styles.valueTitle}>For HR teams</div>
+            <p className={styles.valueDesc}>
+              Create jobs in seconds inside Notion, share one apply link, and stop manually screening every profile. AI handles first-round interviews while you focus on top candidates.
+            </p>
+          </div>
+          <div className={styles.valueCard}>
+            <div className={styles.valueTitle}>For candidates</div>
+            <p className={styles.valueDesc}>
+              Skip tedious forms and resume re-uploads. Applying feels like a natural conversation, so candidates can show real experience quickly without wasting hours.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -226,19 +236,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className={styles.ctaSection} id="waitlist">
+      <section className={styles.quickStartSection} id="quick-start">
         <div className={`${styles.ctaTitle} ${instrumentSerif.className}`}>
-          Your Notion workspace is
+          Quick start:
           <br />
-          <em>already an ATS.</em>
+          <em>see Hirely live now.</em>
         </div>
-        <div className={styles.ctaSub}>Early access is free. No credit card required.</div>
-        <form className={styles.emailForm} onSubmit={handleSubmit}>
-          <input className={styles.emailInput} type="email" placeholder="your@email.com" required disabled={joinedWaitlist} />
-          <button className={`${styles.emailBtn} ${joinedWaitlist ? styles.emailBtnSuccess : ''}`} type="submit" disabled={joinedWaitlist}>
-            {joinedWaitlist ? "You're in" : 'Join waitlist'}
-          </button>
-        </form>
+        <div className={styles.ctaSub}>Pick your path and go from zero to interview results in minutes.</div>
+        <div className={styles.quickStartGrid}>
+          <a className={styles.quickStartCard} href="https://hirely-tan.vercel.app/apply/32fa3459-b0f2-8016-9a69-c701590a6033" target="_blank" rel="noreferrer">
+            <div className={styles.quickStartTitle}>Take an interview now</div>
+            <div className={styles.quickStartDesc}>Open a live role and complete a 2-minute AI interview. Your scored card appears in Notion automatically.</div>
+          </a>
+          <a className={styles.quickStartCard} href="https://www.notion.so/32ea3459b0f2800ab6feed22dbf373b5?pvs=21" target="_blank" rel="noreferrer">
+            <div className={styles.quickStartTitle}>Post a job in Notion</div>
+            <div className={styles.quickStartDesc}>Create a role, set status to Published, and get an apply link generated for sharing in 20-30 seconds.</div>
+          </a>
+          <a className={styles.quickStartCard} href="https://www.notion.so/32ea3459b0f2803f884ce1ecddc70d95?pvs=21" target="_blank" rel="noreferrer">
+            <div className={styles.quickStartTitle}>Watch scored candidates land</div>
+            <div className={styles.quickStartDesc}>Review match score, skill signals, salary fit, and summary cards directly in your Candidates database.</div>
+          </a>
+        </div>
       </section>
 
       <footer className={styles.footer}>
