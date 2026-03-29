@@ -321,7 +321,7 @@ export default function HomePage() {
         <div className={`${styles.footerLogo} ${instrumentSerif.className}`}>
           Hire<em>ly</em>
         </div>
-        <div className={styles.footerNote}>Built with Notion MCP · Submitted to Notion MCP Challenge 2025</div>
+        <div className={styles.footerNote}>Built with Notion MCP · Submitted to Notion MCP Challenge 2026</div>
       </footer>
     </main>
   )
