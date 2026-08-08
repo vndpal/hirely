@@ -20,6 +20,12 @@ npm-debug.log*
 # local env files
 .env*.local
 
+# local sqlite database
+data/
+*.db
+*.db-shm
+*.db-wal
+
 # vercel
 .vercel
 
